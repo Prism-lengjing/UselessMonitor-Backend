@@ -9,8 +9,11 @@ A lightweight Gin + SQLite service that tracks monitor entries with key-based ac
    READ_KEY=example-read-key
    ADMIN_KEY=example-admin-key
    ```
-2. Install Go dependencies and run the server:
+2. Install Go dependencies and run the server. The module pins Go toolchain
+   `go1.24.3`; if your environment blocks Go from downloading toolchain
+   updates, pin to the local toolchain explicitly:
    ```bash
+   export GOTOOLCHAIN=local
    # adjust GOPROXY if your environment blocks the default proxy
    GOPROXY=https://proxy.golang.org,direct go mod tidy
    go run .
