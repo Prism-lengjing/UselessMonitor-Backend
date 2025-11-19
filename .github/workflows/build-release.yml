@@ -1,0 +1,54 @@
+name: Build and Release
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build binary
+        run: |
+          mkdir -p dist
+          go build -o dist/useless-monitor-backend ./
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: useless-monitor-backend
+          path: dist/useless-monitor-backend
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: useless-monitor-backend
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/useless-monitor-backend
+          tag_name: push-${{ github.run_id }}
+          name: Push Release #${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
