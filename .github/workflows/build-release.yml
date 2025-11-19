@@ -10,6 +10,24 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            extension: ""
+          - goos: linux
+            goarch: arm64
+            extension: ""
+          - goos: darwin
+            goarch: amd64
+            extension: ""
+          - goos: darwin
+            goarch: arm64
+            extension: ""
+          - goos: windows
+            goarch: amd64
+            extension: ".exe"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,31 +40,36 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - name: Build binary
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }} binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: |
           mkdir -p dist
-          go build -o dist/useless-monitor-backend ./
+          output="dist/useless-monitor-backend-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.extension }}"
+          go build -o "$output" ./
 
-      - name: Upload build artifact
+      - name: Upload ${{ matrix.goos }}/${{ matrix.goarch }} artifact
         uses: actions/upload-artifact@v4
         with:
-          name: useless-monitor-backend
-          path: dist/useless-monitor-backend
+          name: useless-monitor-backend-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/useless-monitor-backend-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.extension }}
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifact
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: useless-monitor-backend
+          pattern: useless-monitor-backend-*
           path: dist
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/useless-monitor-backend
+          files: dist/*
           tag_name: push-${{ github.run_id }}
           name: Push Release #${{ github.run_number }}
           target_commitish: ${{ github.sha }}
